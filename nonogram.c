@@ -22,6 +22,7 @@
 #include "autoconfig.h"
 
 #include <cilk/cilk.h>
+#include <cilk/cilk_api.h>
 #include <assert.h>
 #include <math.h>
 #ifdef HAVE_SIGACTION
@@ -381,24 +382,34 @@ static void finger_line(Picture *mpicture, Queue *queue)
   unsigned int i, j, imul, mul, size, oline, line;
   int factor;
   bool vert;
+  //  int myid = __cilkrts_get_worker_number();
 
   fingercounter++;
+  pthread_mutex_lock(&(queue->queue_lock));
   line = oline = get_from_queue(queue);
+  if (line == -1) {
+    pthread_mutex_unlock(&(queue->queue_lock));
+    return;
+  }
+  //  pthread_mutex_unlock(&(queue->queue_lock));
   if (line < ysize)
     imul = xsize, mul = 1, size = xsize, vert = false;
   else
     imul = 1, mul = xsize, size = ysize, line -= ysize, vert = true;
 
   j = mpicture->linecounter[oline];
-  if (j == 0 || j == size)
+  if (j == 0 || j == size) {
+    pthread_mutex_unlock(&(queue->queue_lock));
     return;
+  }
 
+  pthread_mutex_lock(&(mpicture->pic_lock));
   picture = mpicture->bits + line * imul;
   testfield = gtestfield;
   memset(testfield, 0, size * sizeof(uint64_t));
 
   if (vert)
-    q = touch_line(picture, size, testfield, topborder + line * size, true); // lock?
+    q = touch_line(picture, size, testfield, topborder + line * size, true);
   else
     q = touch_line(picture, size, testfield, leftborder + line * size, false);
 
@@ -411,21 +422,23 @@ static void finger_line(Picture *mpicture, Queue *queue)
       mpicture->counter--;
       mpicture->linecounter[oline]--;
       factor = MAX_FACTOR * (--mpicture->linecounter[i]) / size + mpicture->evilcounter[i];
-      // lock queue here
+      //      pthread_mutex_lock(&(queue->queue_lock));
       put_into_queue(queue, i, factor);
       *picture = u ? X : O;
     }
     picture += mul;
   }
+      pthread_mutex_unlock(&(queue->queue_lock));
+      pthread_mutex_unlock(&(mpicture->pic_lock));
 }
 
 static void finger_lines(Picture *mpicture, Queue *queue) {
-  
+  printf("%d workers\n", __cilkrts_get_nworkers());
   while (1) {
     if (is_queue_empty(queue))
       break;
     //to do: set grainsize, cilk spawn here
-    finger_line(mpicture, queue);
+    cilk_spawn finger_line(mpicture, queue);
   }
 }
 
@@ -652,6 +665,8 @@ static inline void shake(Picture *mpicture)
   unsigned int i, j;
   int factor;
   Queue *queue = alloc_queue();
+  clock_t fingerstart, fingerend, ticks;
+  double seconds;
 
   assert(ysize > 0);
 
@@ -667,13 +682,13 @@ for (i = 0; i < ysize; i++)
     put_into_queue(queue, j, factor);
   }
 
-  clock_t fingerstart = clock();
+  fingerstart = clock();
   finger_lines(mpicture, queue);
-  clock_t fingerend = clock();
-  clock_t ticks = fingerend-fingerstart;
-  double seconds = (double) ((ticks + 0.0) / CLOCKS_PER_SEC);
+  fingerend = clock();
+  ticks = fingerend-fingerstart;
+  seconds = (double) ((ticks + 0.0) / CLOCKS_PER_SEC);
 
-  printf("fingering: %.02f seconds\n", seconds);
+  printf("fingering: %.02f seconds CPU\n", seconds);
   free_queue(queue);
   return;
 }

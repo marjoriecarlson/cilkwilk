@@ -93,6 +93,7 @@ bool put_into_queue(Queue *queue, unsigned int id, int factor)
   factor = -factor;
 
   assert(id < xpysize);
+
   i = queue->enqueued[id];
   if (i == (unsigned int)-1)
     i = queue->size++;
@@ -113,14 +114,14 @@ bool put_into_queue(Queue *queue, unsigned int id, int factor)
   queue->elements[i].id = id;
   queue->elements[i].factor = factor;
   update_queue_enq(queue, i);
-
   return true;
 }
 
 unsigned int get_from_queue(Queue *queue)
 {
   unsigned int resultid, last;
-  assert(queue->size > 0);
+  if (queue->size <= 0)
+    return -1;
   resultid = queue->elements[0].id;
   last = --queue->size;
   if (queue->size > 0)
