@@ -1,23 +1,4 @@
-/* Copyright © 2003-2014 Jakub Wilk <jwilk@jwilk.net>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the “Software”), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
+#define S
 
 #include "autoconfig.h"
 
@@ -42,6 +23,12 @@
 #include "nonogram.h"
 #include "queue.h"
 #include "term.h"
+
+#ifdef S
+#define SEQ = 1
+#else
+#define SEQ = 0
+#endif
 
 Picture *mainpicture;
 unsigned int *leftborder, *topborder;
@@ -311,8 +298,6 @@ static void print_picture_html(bit *picture, bool use_xhtml)
 
 static inline void print_picture(bit *picture, bit *cpicture)
 {
-  if (config.stats)
-    return; // XXX undocumented!
   if (config.html)
     print_picture_html(picture, config.xhtml);
   else
@@ -463,7 +448,8 @@ static void finger_lines(Picture *mpicture, Queue *queue) {
     if (is_queue_empty(queue))
       break;
     //to do: set grainsize, cilk spawn here
-    cilk_spawn finger_line(mpicture, queue);
+    //    cilk_spawn finger_line(mpicture, queue);
+    finger_line(mpicture, queue);
   }
 }
 
@@ -764,7 +750,6 @@ int main(int argc, char **argv)
   unsigned int i, j, k, sane;
   unsigned int evs, evm;
   bit *checkbits = NULL;
-  clock_t start, end, ticks;
   struct timeval start_time, end_time, time_diff;
 
 #if ENABLE_DEBUG
@@ -916,7 +901,6 @@ int main(int argc, char **argv)
   rc = EXIT_SUCCESS;
 
   fingercounter = 0;
-  start = clock();
   gettimeofday(&start_time, NULL);
 
   preliminary_shake(mainpicture);
@@ -926,7 +910,6 @@ int main(int argc, char **argv)
   {
     fingercounter = 0;
     gettimeofday(&end_time, NULL);
-    end = clock();
 
     rc = EXIT_FAILURE;
     fprintf(stderr, "Inconsistent puzzle!\n");
@@ -955,12 +938,10 @@ int main(int argc, char **argv)
       }
     }
     gettimeofday(&end_time, NULL);
-    end = clock();
   }
-  ticks = end-start;
   timeval_subtract(&time_diff, &end_time, &start_time);
 
-  printf("Processing time: %.2f processor, %ld.%ld wall\n", (double) ((ticks + 0.0)/ CLOCKS_PER_SEC), time_diff.tv_sec, time_diff.tv_usec);
+  printf("Execution time: %ld.%ld sec\n", time_diff.tv_sec, time_diff.tv_usec);
 
 
   printf("%ju\n", fingercounter);

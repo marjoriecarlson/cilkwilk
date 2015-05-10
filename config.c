@@ -33,7 +33,6 @@ Config config = {
   .utf8 = false,
   .html = false,
   .xhtml = false,
-  .stats = false
 };
 
 static void show_usage(void)
@@ -41,6 +40,7 @@ static void show_usage(void)
   fprintf(stderr,
     "Usage: nonogram [OPTIONS]\n\n"
     "Options:\n"
+    " -s, --seq          run sequential\n"
     "  -c, --colors      use colors\n"
     "  -u, --utf-8       use UTF-8 drawing characters\n"
     "  -H, --html        HTML output\n"
@@ -115,7 +115,7 @@ void parse_arguments(int argc, char **argv, char **vfn)
         *vfn = optarg;
       break;
     case 's':
-      config.stats = true;
+      config.seq = true;
       break;
     default:
       exit(EXIT_FAILURE);

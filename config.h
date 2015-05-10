@@ -30,7 +30,7 @@ typedef struct
   bool utf8;   // display UTF-8 drawing characters
   bool html;   // print HTML instead of plain text
   bool xhtml;  // print XHTML instead of plain text
-  bool stats;
+  bool seq;
 } Config;
 
 extern Config config;
