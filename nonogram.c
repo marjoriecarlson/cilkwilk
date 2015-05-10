@@ -23,6 +23,7 @@
 
 #include <cilk/cilk.h>
 #include <cilk/cilk_api.h>
+#include <sys/time.h>
 #include <assert.h>
 #include <math.h>
 #ifdef HAVE_SIGACTION
@@ -97,6 +98,31 @@ static void setup_sigint()
   sigaction(SIGINT, &act, NULL);
 #endif
 }
+
+int timeval_subtract (result, x, y)
+     struct timeval *result, *x, *y;
+{
+  /* Perform the carry for the later subtraction by updating y. */
+  if (x->tv_usec < y->tv_usec) {
+    int nsec = (y->tv_usec - x->tv_usec) / 1000000 + 1;
+    y->tv_usec -= 1000000 * nsec;
+    y->tv_sec += nsec;
+  }
+  if (x->tv_usec - y->tv_usec > 1000000) {
+    int nsec = (y->tv_usec - x->tv_usec) / 1000000;
+    y->tv_usec += 1000000 * nsec;
+    y->tv_sec -= nsec;
+  }
+  
+  /* Compute the time remaining to wait.
+     tv_usec is certainly positive. */
+  result->tv_sec = x->tv_sec - y->tv_sec;
+  result->tv_usec = x->tv_usec - y->tv_usec;
+  
+  /* Return 1 if result is negative. */
+  return x->tv_sec < y->tv_sec;
+}
+
 
 static void print_picture_plain(bit *picture, bit *cpicture, bool use_ncurses)
 {
@@ -433,7 +459,6 @@ static void finger_line(Picture *mpicture, Queue *queue)
 }
 
 static void finger_lines(Picture *mpicture, Queue *queue) {
-  printf("%d workers\n", __cilkrts_get_nworkers());
   while (1) {
     if (is_queue_empty(queue))
       break;
@@ -665,8 +690,6 @@ static inline void shake(Picture *mpicture)
   unsigned int i, j;
   int factor;
   Queue *queue = alloc_queue();
-  clock_t fingerstart, fingerend, ticks;
-  double seconds;
 
   assert(ysize > 0);
 
@@ -682,13 +705,8 @@ for (i = 0; i < ysize; i++)
     put_into_queue(queue, j, factor);
   }
 
-  fingerstart = clock();
   finger_lines(mpicture, queue);
-  fingerend = clock();
-  ticks = fingerend-fingerstart;
-  seconds = (double) ((ticks + 0.0) / CLOCKS_PER_SEC);
 
-  printf("fingering: %.02f seconds CPU\n", seconds);
   free_queue(queue);
   return;
 }
@@ -747,6 +765,7 @@ int main(int argc, char **argv)
   unsigned int evs, evm;
   bit *checkbits = NULL;
   clock_t start, end, ticks;
+  struct timeval start_time, end_time, time_diff;
 
 #if ENABLE_DEBUG
   FILE *verifyfile;
@@ -898,6 +917,7 @@ int main(int argc, char **argv)
 
   fingercounter = 0;
   start = clock();
+  gettimeofday(&start_time, NULL);
 
   preliminary_shake(mainpicture);
   shake(mainpicture);
@@ -905,8 +925,8 @@ int main(int argc, char **argv)
   if (!check_consistency(mainpicture->bits))
   {
     fingercounter = 0;
+    gettimeofday(&end_time, NULL);
     end = clock();
-    ticks = end - start;
 
     rc = EXIT_FAILURE;
     fprintf(stderr, "Inconsistent puzzle!\n");
@@ -934,11 +954,15 @@ int main(int argc, char **argv)
         fprintf(stderr, "Inconsistent puzzle!\n");
       }
     }
+    gettimeofday(&end_time, NULL);
     end = clock();
-    ticks = end-start;
   }
+  ticks = end-start;
+  timeval_subtract(&time_diff, &end_time, &start_time);
 
-  printf("Processing time: %.2f sec\n", (double) ((ticks + 0.0)/ CLOCKS_PER_SEC));
+  printf("Processing time: %.2f processor, %ld.%ld wall\n", (double) ((ticks + 0.0)/ CLOCKS_PER_SEC), time_diff.tv_sec, time_diff.tv_usec);
+
+
   printf("%ju\n", fingercounter);
 
   return rc;
