@@ -422,8 +422,12 @@ static void finger_line(Picture *mpicture, Queue *queue)
 }
 
 static void finger_lines(Picture *mpicture, Queue *queue) {
-  while (!is_queue_empty(queue))
+  
+  while (1) {
+    if (is_queue_empty(queue))
+      break;
     finger_line(mpicture, queue);
+  }
 }
 
 static bool check_consistency(bit *picture)
@@ -664,7 +668,7 @@ for (i = 0; i < ysize; i++)
   }
 
   double fingerstart = omp_get_wtime();
-  cilk_spawn finger_lines(mpicture, queue);
+  finger_lines(mpicture, queue);
   double fingerend = omp_get_wtime();
 
   printf("fingerings: %.02f seconds\n", fingerend-fingerstart);
