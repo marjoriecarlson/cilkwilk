@@ -21,7 +21,6 @@
 
 #include "autoconfig.h"
 
-#include <omp.h>
 #include <cilk/cilk.h>
 #include <assert.h>
 #include <math.h>
@@ -535,7 +534,9 @@ static void *alloc_picture(void)
       vsize * sizeof(bit) );
   tmp->linecounter = alloc(sizeof(unsigned int) * xpysize);
   tmp->evilcounter = alloc(sizeof(unsigned int) * xpysize);
+  /*  printf("initializing pic lock\n");
   pthread_mutex_init(&(tmp->pic_lock), NULL);
+  printf("finished initializing pic lock\n"); */
   for (i = 0; i < ysize; i++)
     tmp->linecounter[i] = xsize;
   for (i = 0; i < xsize; i++)
@@ -668,11 +669,13 @@ for (i = 0; i < ysize; i++)
     put_into_queue(queue, j, factor);
   }
 
-  double fingerstart = omp_get_wtime();
+  clock_t fingerstart = clock();
   finger_lines(mpicture, queue);
-  double fingerend = omp_get_wtime();
+  clock_t fingerend = clock();
+  clock_t ticks = fingerend-fingerstart;
+  double seconds = (double) ((ticks + 0.0) / CLOCKS_PER_SEC);
 
-  printf("fingerings: %.02f seconds\n", fingerend-fingerstart);
+  printf("fingering: %.02f seconds\n", seconds);
   free_queue(queue);
   return;
 }
@@ -730,7 +733,7 @@ int main(int argc, char **argv)
   unsigned int i, j, k, sane;
   unsigned int evs, evm;
   bit *checkbits = NULL;
-  double starttime, endtime;
+  clock_t start, end, ticks;
 
 #if ENABLE_DEBUG
   FILE *verifyfile;
@@ -881,16 +884,19 @@ int main(int argc, char **argv)
   rc = EXIT_SUCCESS;
 
   fingercounter = 0;
-  
-  starttime = omp_get_wtime();
-  
+  start = clock();
+
+  printf("prelimshake\n");
   preliminary_shake(mainpicture);
+  printf("shake\n");
   shake(mainpicture);
 
   if (!check_consistency(mainpicture->bits))
   {
     fingercounter = 0;
-    endtime = omp_get_wtime();
+    end = clock();
+    ticks = end - start;
+
     rc = EXIT_FAILURE;
     fprintf(stderr, "Inconsistent puzzle!\n");
     if (ENABLE_DEBUG)
@@ -917,10 +923,11 @@ int main(int argc, char **argv)
         fprintf(stderr, "Inconsistent puzzle!\n");
       }
     }
-    endtime = omp_get_wtime();
+    end = clock();
+    ticks = end-start;
   }
 
-  printf("Processing time: %.2f sec\n", endtime-starttime);
+  printf("Processing time: %.2f sec\n", (double) ((ticks + 0.0)/ CLOCKS_PER_SEC));
   printf("%ju\n", fingercounter);
 
   return rc;

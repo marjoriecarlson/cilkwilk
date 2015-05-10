@@ -19,7 +19,7 @@
 # SOFTWARE.
 
 CC = gcc -std=gnu99
-CFLAGS = -g -O2 -Wall -fopenmp -fcilkplus
+CFLAGS = -g -O2 -Wall -fcilkplus
 CPPFLAGS = 
 LDFLAGS = 
 LDLIBS =  -lncurses   -lm
