@@ -35,7 +35,7 @@ typedef signed char bit;
 
 typedef struct
 {
-  //  pthread_mutex_t pic_lock;
+  pthread_mutex_t pic_lock;
   unsigned int counter; // how many Q-fields we have
   unsigned int *linecounter;
   unsigned int *evilcounter;

@@ -534,9 +534,7 @@ static void *alloc_picture(void)
       vsize * sizeof(bit) );
   tmp->linecounter = alloc(sizeof(unsigned int) * xpysize);
   tmp->evilcounter = alloc(sizeof(unsigned int) * xpysize);
-  /*  printf("initializing pic lock\n");
   pthread_mutex_init(&(tmp->pic_lock), NULL);
-  printf("finished initializing pic lock\n"); */
   for (i = 0; i < ysize; i++)
     tmp->linecounter[i] = xsize;
   for (i = 0; i < xsize; i++)
@@ -886,9 +884,7 @@ int main(int argc, char **argv)
   fingercounter = 0;
   start = clock();
 
-  printf("prelimshake\n");
   preliminary_shake(mainpicture);
-  printf("shake\n");
   shake(mainpicture);
 
   if (!check_consistency(mainpicture->bits))

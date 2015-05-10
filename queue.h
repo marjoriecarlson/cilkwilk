@@ -32,7 +32,7 @@ typedef struct
 
 typedef struct
 {
-  //  pthread_mutex_t queue_lock;
+  pthread_mutex_t queue_lock;
   unsigned int size;
   unsigned int *enqueued;
   QueueItem *elements;
