@@ -394,23 +394,18 @@ static void finger_line(Picture *mpicture, Queue *queue)
   fingercounter++;
   pthread_mutex_lock(&(queue->queue_lock));
   line = oline = get_from_queue(queue);
-  if (line == -1) {
-    pthread_mutex_unlock(&(queue->queue_lock));
+  pthread_mutex_unlock(&(queue->queue_lock));
+  if (line == -1)
     return;
-  }
-  //  pthread_mutex_unlock(&(queue->queue_lock));
+
   if (line < ysize)
     imul = xsize, mul = 1, size = xsize, vert = false;
   else
     imul = 1, mul = xsize, size = ysize, line -= ysize, vert = true;
 
   j = mpicture->linecounter[oline];
-  if (j == 0 || j == size) {
-    pthread_mutex_unlock(&(queue->queue_lock));
+  if (j == 0 || j == size)
     return;
-  }
-
-  pthread_mutex_lock(&(mpicture->pic_lock));
   picture = mpicture->bits + line * imul;
   testfield = gtestfield;
   memset(testfield, 0, size * sizeof(uint64_t));
@@ -419,37 +414,41 @@ static void finger_line(Picture *mpicture, Queue *queue)
     q = touch_line(picture, size, testfield, topborder + line * size, true);
   else
     q = touch_line(picture, size, testfield, leftborder + line * size, false);
-
   j = vert ? 0 : ysize;
   for (i = j; i < j + size; i++)
   {
     u = *testfield++;
     if ((u == q || u == 0) && (*picture == Q))
     {
+      pthread_mutex_lock(&(mpicture->pic_lock));
       mpicture->counter--;
       mpicture->linecounter[oline]--;
+      pthread_mutex_unlock(&(mpicture->pic_lock));  
       factor = MAX_FACTOR * (--mpicture->linecounter[i]) / size + mpicture->evilcounter[i];
-      //      pthread_mutex_lock(&(queue->queue_lock));
+      pthread_mutex_lock(&(queue->queue_lock));
       put_into_queue(queue, i, factor);
+      pthread_mutex_unlock(&(queue->queue_lock));
       *picture = u ? X : O;
     }
     picture += mul;
   }
-      pthread_mutex_unlock(&(queue->queue_lock));
-      pthread_mutex_unlock(&(mpicture->pic_lock));
 }
 
-static void finger_lines(Picture *mpicture, Queue *queue) {
+static int finger_lines(Picture *mpicture, Queue *queue) {
+  int fingeriters = 0;
   while (1) {
     if (is_queue_empty(queue))
       break;
     if (config.seq) {
+      fingeriters++;
       finger_line(mpicture, queue);
     }
     else {
+      fingeriters++;
       cilk_spawn finger_line(mpicture, queue);
     }
   }
+  return fingeriters;
 }
 
 static bool check_consistency(bit *picture)
@@ -927,8 +926,10 @@ int main(int argc, char **argv)
         mainpicture->counter
       );
       printf("backtracking\n");
-      if (backtrack(mainpicture))
+      if (backtrack(mainpicture)) {
+	printf("finished backgracking\n");
         print_picture(mainpicture->bits, checkbits);
+      }
       else
       {
         rc = EXIT_FAILURE;
@@ -939,15 +940,14 @@ int main(int argc, char **argv)
     gettimeofday(&end_time, NULL);
   }
   timeval_subtract(&time_diff, &end_time, &start_time);
+  double milliseconds = time_diff.tv_sec*1000.0;
+  milliseconds += time_diff.tv_usec*.001;
 
   if (config.seq)
     printf("Sequential: ");
   else
-    printf("Parallel: ");
-  printf("%ld.%ld sec\n", time_diff.tv_sec, time_diff.tv_usec);
-
-
-  //  printf("%ju\n", fingercounter);
+    printf("Parallel:   ");
+  printf("%.3f millisec (%jd)\n", milliseconds, fingercounter);
 
   return rc;
 }
