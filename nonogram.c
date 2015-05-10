@@ -24,12 +24,6 @@
 #include "queue.h"
 #include "term.h"
 
-#ifdef S
-#define SEQ = 1
-#else
-#define SEQ = 0
-#endif
-
 Picture *mainpicture;
 unsigned int *leftborder, *topborder;
 uint64_t *gtestfield;
@@ -298,10 +292,12 @@ static void print_picture_html(bit *picture, bool use_xhtml)
 
 static inline void print_picture(bit *picture, bit *cpicture)
 {
-  if (config.html)
-    print_picture_html(picture, config.xhtml);
-  else
-    print_picture_plain(picture, cpicture, true);
+  if (config.print) {
+    if (config.html)
+      print_picture_html(picture, config.xhtml);
+    else
+      print_picture_plain(picture, cpicture, true);
+  }
 }
 
 static uint64_t touch_line(bit *picture, unsigned int range, uint64_t *testfield, unsigned int *borderitem, bool vert)
@@ -447,9 +443,12 @@ static void finger_lines(Picture *mpicture, Queue *queue) {
   while (1) {
     if (is_queue_empty(queue))
       break;
-    //to do: set grainsize, cilk spawn here
-    //    cilk_spawn finger_line(mpicture, queue);
-    finger_line(mpicture, queue);
+    if (config.seq) {
+      finger_line(mpicture, queue);
+    }
+    else {
+      cilk_spawn finger_line(mpicture, queue);
+    }
   }
 }
 
@@ -941,10 +940,14 @@ int main(int argc, char **argv)
   }
   timeval_subtract(&time_diff, &end_time, &start_time);
 
-  printf("Execution time: %ld.%ld sec\n", time_diff.tv_sec, time_diff.tv_usec);
+  if (config.seq)
+    printf("Sequential: ");
+  else
+    printf("Parallel: ");
+  printf("%ld.%ld sec\n", time_diff.tv_sec, time_diff.tv_usec);
 
 
-  printf("%ju\n", fingercounter);
+  //  printf("%ju\n", fingercounter);
 
   return rc;
 }

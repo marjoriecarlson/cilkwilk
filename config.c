@@ -29,6 +29,7 @@
 #include "config.h"
 
 Config config = {
+  .print = true,
   .color = false,
   .utf8 = false,
   .html = false,
@@ -40,7 +41,8 @@ static void show_usage(void)
   fprintf(stderr,
     "Usage: nonogram [OPTIONS]\n\n"
     "Options:\n"
-    " -s, --seq          run sequential\n"
+    " -s, --sequential   run sequential\n"
+    " -n, --noprint      no print\n"
     "  -c, --colors      use colors\n"
     "  -u, --utf-8       use UTF-8 drawing characters\n"
     "  -H, --html        HTML output\n"
@@ -73,7 +75,8 @@ void parse_arguments(int argc, char **argv, char **vfn)
     { "html",       0, 0, 'H' },
     { "xhtml",      0, 0, 'X' },
     { "file",       0, 0, 'f' }, // XXX undocumented
-    { "statistics", 0, 0, 's' }, // XXX undocumented
+    { "sequential", 0, 0, 's' },
+    { "noprint",    0, 0, 'n' }, // XXX undocumented
     { NULL,         0, 0, '\0' }
   };
 
@@ -82,7 +85,7 @@ void parse_arguments(int argc, char **argv, char **vfn)
   while (true)
   {
     optindex = 0;
-    c = getopt_long(argc, argv, "vhcmuHXsf:", options, &optindex);
+    c = getopt_long(argc, argv, "vhcmnuHXsf:", options, &optindex);
     if (c < 0)
       break;
     if (c == 0)
@@ -113,6 +116,9 @@ void parse_arguments(int argc, char **argv, char **vfn)
     case 'f':
       if (ENABLE_DEBUG && optarg != NULL)
         *vfn = optarg;
+      break;
+    case 'n':
+      config.print = false;
       break;
     case 's':
       config.seq = true;
