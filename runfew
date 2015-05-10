@@ -1,0 +1,8 @@
+./nonogram -ns < data/data000.nin
+./nonogram -n < data/data000.nin
+echo -e "\n"
+./nonogram -ns < data/data013.nin
+./nonogram -n <	 data/data013.nin
+echo -e "\n"
+./nonogram -ns < data/data066.nin
+./nonogram -n <	 data/data066.nin

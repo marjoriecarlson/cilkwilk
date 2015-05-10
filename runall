@@ -1,0 +1,6 @@
+echo"------- BATCH RUN -------" >> output_seq;
+date >> output;
+
+for file in data/*;
+    do ./nonogram -m < $file >> output_seq;
+    done;
