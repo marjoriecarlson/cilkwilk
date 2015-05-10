@@ -384,7 +384,6 @@ static void finger_line(Picture *mpicture, Queue *queue)
   bool vert;
 
   fingercounter++;
-  // lock this
   line = oline = get_from_queue(queue);
   if (line < ysize)
     imul = xsize, mul = 1, size = xsize, vert = false;
@@ -426,6 +425,7 @@ static void finger_lines(Picture *mpicture, Queue *queue) {
   while (1) {
     if (is_queue_empty(queue))
       break;
+    //to do: set grainsize, cilk spawn here
     finger_line(mpicture, queue);
   }
 }
@@ -535,6 +535,7 @@ static void *alloc_picture(void)
       vsize * sizeof(bit) );
   tmp->linecounter = alloc(sizeof(unsigned int) * xpysize);
   tmp->evilcounter = alloc(sizeof(unsigned int) * xpysize);
+  pthread_mutex_init(&(tmp->pic_lock), NULL);
   for (i = 0; i < ysize; i++)
     tmp->linecounter[i] = xsize;
   for (i = 0; i < xsize; i++)

@@ -19,6 +19,8 @@
  * SOFTWARE.
  */
 
+#include <pthread.h>
+
 #ifndef NONOGRAM_H
 #define NONOGRAM_H
 
@@ -33,6 +35,7 @@ typedef signed char bit;
 
 typedef struct
 {
+  pthread_mutex_t pic_lock;
   unsigned int counter; // how many Q-fields we have
   unsigned int *linecounter;
   unsigned int *evilcounter;

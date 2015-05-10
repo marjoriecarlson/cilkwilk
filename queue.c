@@ -68,6 +68,7 @@ Queue *alloc_queue(void)
       offsetof(Queue, space) +
       xpysize * (sizeof(unsigned int*) + sizeof(QueueItem)) );
   tmp->size = 0;
+  pthread_mutex_init(&(tmp->queue_lock), NULL);
   tmp->enqueued = (unsigned int*)tmp->space;
   memset(tmp->enqueued, -1, sizeof(unsigned int*) * xpysize);
   tmp->elements = (QueueItem*)(tmp->space + xpysize * sizeof(unsigned int));
